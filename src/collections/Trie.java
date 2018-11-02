@@ -1,258 +1,184 @@
 package collections;
 
-import java.io.PrintStream;
+
+
+
 import java.util.ArrayList;
-import static java.util.Arrays.asList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
+import java.util.Stack;
 
 /**
- * 42 45
  * @author Hayden
  */
-public class Trie<T> implements Collection<List<T>>
+public class Trie
 {
+    
     public static void main(String[] args)
     {
-        Trie<Character> trie = new Trie<>();
-        trie.add(asList('A'));
-        trie.add(asList('t', 'o'));
-        trie.add(asList('t', 'e','a'));
-        trie.add(asList('t', 'e','d'));
-        trie.add(asList('t', 'e','n'));
-        trie.add(asList('i'));
-        trie.add(asList('i', 'n'));
-        trie.add(asList('i', 'n','n'));
-        trie.preorderToStream(System.out);
+        Trie test = new Trie();
+        
+        test.add("A");
+        test.add("to");
+        test.add("tea");
+        test.add("ted");
+        test.add("ten");
+        test.add("i");
+        test.add("in");
+        test.add("inn");
+        test.add("inn");
+        test.preorderPrint();
+        System.out.printf("in : %d\n", test.query("in"));
     }
-
-    static class Vertex
+    // each vertex represents a distinct string in the trie
+    class TrieVertex
     {
         // number of elements in this collection that have the current
         // vertex in a prefix of the element
         int prefixCount;
-        
-        // is 0 if the word is not contained in the collection
-        // otherwise the value indicates how many times the element is in the collection
-        int isFinal; 
-        
-        // the edges that lead to other vertices in the trie
-        List<Edge> edges;
-        
-        public Vertex()
+        int isFinal;
+        ArrayList<TrieEdge> edges;
+        public TrieVertex()
         {
+            prefixCount = 0;
+            isFinal = 0;
             edges = new ArrayList<>();
         }
     }
-
-    static class Edge<T>
+    
+    // each edge represents appending a character to the current string
+    class TrieEdge
     {
-        Vertex consequent;
-        T value;
-
-
-        public Edge(Vertex con, T sym)
+        TrieVertex consequent;
+        char symbol;
+        
+        public TrieEdge(TrieVertex con, char sym)
         {
             consequent = con;
-            value = sym;
+            symbol = sym;
         }
     }
     
-    // the root represents matching the empty sequence
-    Vertex root;
+    // the root represents matching the empty string
+    TrieVertex root;
     
+    // that the trie is also exactly a deterministic finite automaton
+    // https://en.wikipedia.org/wiki/Deterministic_finite_automaton
     public Trie()
     {
         // initialize to the empty string
-        root = new Vertex();
+        root = new TrieVertex();
     }
     
-    /**
-     * The numver of elements 
-     * @return the number of elements in the list that start with an empty
-     * sequence which is all elements 
-     */
-    @Override
-    public int size()
+    // adds a string to the trie
+    public void add(String input)
     {
-        return root.prefixCount;
-    }
-
-    @Override
-    public boolean isEmpty()
-    {
-        return size() == 0;
-    }
-
-    @Override
-    public boolean contains(Object o)
-    {
-        if (!(o instanceof List))
-            return false;
-        // TODO: when does this fail
-        List<T> find = (List<T>)o;
-        
-        Vertex it = root;
-        for (T element : find)
-            if ((it = transition(it, element)) == null)
-                    return false;
-        return it.isFinal > 0;
-    }
-
-    @Override
-    public Iterator<List<T>> iterator()
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public Object[] toArray()
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public <T> T[] toArray(T[] a)
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean add(List<T> elements)
-    {
-        Vertex it = root;
+        TrieVertex it = root;
+        // increment vertex number
         it.prefixCount++;
-        for (T element : elements)
-            (it = addAux(it, element)).prefixCount++;
+        for (int i = 0; i < input.length(); i++)
+            (it = addAux(it, input.charAt(i))).prefixCount++;
         it.isFinal++;
-        return true;
     }
     
-//    // if there is a transition on the symbol then transition else
-//    // generate the state first then transition
-//    private Vertex addAux(Vertex v, T symbol)
-//    {
-//        // if found traverse to corresponding vertex
-//        Vertex r = transition(v, symbol);
-//        if (r != null)
-//            return r;
-//        else 
-//            v.edges.add(new Edge(r = new Vertex(), symbol));
-//        // if not found create vertex and treverse to it
-//        Vertex u = new Vertex();
-//        v.edges.add(new Edge(u, symbol));
-//        return u;
-//    }
     // if there is a transition on the symbol then transition else
     // generate the state first then transition
-    private Vertex addAux(Vertex v, T symbol)
+    public TrieVertex addAux(TrieVertex vv, char symbol)
     {
         // if found traverse to corresponding vertex
-        Vertex r = transition(v, symbol);
+        TrieVertex rr = transition(vv, symbol);
+        if (rr != null)
+            return rr;
+        
         // if not found create vertex and treverse to it
-        if (r == null)
-            v.edges.add(new Edge(r = new Vertex(), symbol));
-        return r;
-    }
-    // given a state and a symbol will transition to a new state or return
-    // null if no such state is found
-    private Vertex transition(Vertex v, T symbol)
-    {
-        for (Edge e : v.edges)
-            if (e.value.equals(symbol))
-                return e.consequent;
-        return null;
-    }
-
-    @Override
-    public boolean remove(Object o)
-    {
-        if (!(o instanceof List))
-            return false;
-        List<T> element = (List<T>)o;
-        for (T item : element)
-        {
-            
-        }
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean containsAll(Collection<?> c)
-    {
-        for (Object element : c)
-            if (!contains(element))
-                return false;
-        return true;
-    }
-
-    @Override
-    public boolean addAll(Collection<? extends List<T>> c)
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean removeAll(Collection<?> c)
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean removeIf(Predicate<? super List<T>> filter)
-    {
-        return Collection.super.removeIf(filter); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public boolean retainAll(Collection<?> c)
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void clear()
-    {
-        root = new Vertex();
-    }
-
-    @Override
-    public void forEach(Consumer<? super List<T>> action)
-    {
-        Collection.super.forEach(action); //To change body of generated methods, choose Tools | Templates.
-    }
-    public static Collection<Character> toCollection(String input)
-    {
-        Collection<Character> result = new ArrayList<Character>();
-        for (int i = 0; i < input.length(); i++)
-            ;
-        return result;
+        TrieVertex uu = new TrieVertex();
+        vv.edges.add(new TrieEdge(uu, symbol));
+        return uu;
     }
     
-    /**
-     *
-     * @param out
-     */
-    public void preorderToStream(PrintStream out)
+    // given a state and a symbol will transition to a new state or return
+    // null if no such state is found
+    public TrieVertex transition(TrieVertex vv, char symbol)
     {
-        out.printf("[");
-        preorderToStreamAux(root, true, "", out);
-        out.printf("]");
+        for (TrieEdge ee : vv.edges)
+            if (ee.symbol == symbol)
+                return ee.consequent;
+        return null;
+    }
+    
+    // determines if the string is in the trie
+    public boolean exists(String find)
+    {
+        TrieVertex it = root;
+        for (int ii = 0; ii < find.length(); ii++)
+            if ((it = transition(it, find.charAt(ii))) == null)
+                return false;
+        return it.isFinal > 0;
+    }
+    
+    // determines how many strings have partial as a prefix
+    public int query(String partial)
+    {
+        TrieVertex it = root;
+        // traverse using the 
+        for (int ii = 0; ii < partial.length(); ii++)
+            if ((it = transition(it, partial.charAt(ii))) == null)
+                return 0;
+        
+        // return the number of terminal characters are in this subtree
+        return it.prefixCount;
+    }
+    
+    // will count how many final states there are starting at the given
+    // vertex
+    public int finalStatesRecursive(TrieVertex vv)
+    {
+        int total = 0;
+
+        total += vv.isFinal;
+        
+        for (TrieEdge ee : vv.edges)
+            total += finalStatesRecursive(ee.consequent);
+        
+        return total;
     }
 
-    private void preorderToStreamAux(Vertex node, boolean first, String str, PrintStream out)
+    /**
+     *
+     * @param vv
+     * @return 
+     */
+    public int finalStatesIterative(TrieVertex vv)
     {
-        if (root != null)
+        int total = 0;
+        Stack<TrieVertex> stack = new Stack<>();
+        
+        stack.push(vv);
+        while (!stack.isEmpty())
         {
-            out.printf("%s%s", first?"":", ", str);
-            for (Edge e : node.edges)
-                preorderToStreamAux(e.consequent, false, str + e.value.toString(), out);
-            
+            TrieVertex u = stack.pop();
+            total += u.isFinal;
+        
+            // add all neighbors to stack
+            for (TrieEdge e : u.edges)
+                stack.push(e.consequent);
         }
+        return total;
+    }
+    
+    // will recursively print out each element of the trie
+
+    /**
+     *
+     */
+    public void preorderPrint()
+    {
+        preorderPrintAux(root, "");
+    }
+    
+    private void preorderPrintAux(TrieVertex v, String str)
+    {
+        System.out.printf("%s %d\n", str, v.prefixCount);
+        for (TrieEdge e : v.edges)
+            preorderPrintAux(e.consequent, str + e.symbol);
+
     }
 }

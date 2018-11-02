@@ -1,6 +1,7 @@
 package collections;
 
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import static java.util.Arrays.asList;
 import java.util.Collection;
@@ -9,13 +10,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
 import java.util.function.Function;
+import utils.Utils;
 
 /**
  *
  * @author Hayden
  * @param <T> 
  */
-public class GenericTrie<T extends Comparable<T>> implements Collection<List<T>>
+public class GenericTrie<T> implements Collection<List<T>>
 {
     public static void main(String[] args)
     {
@@ -39,17 +41,9 @@ public class GenericTrie<T extends Comparable<T>> implements Collection<List<T>>
 //        test.preorderPrint();
         
         for (List<Character> str : test)
-            System.out.println(charListToString(str));
+            System.out.println(Utils.charListToString(str));
     }
     
-    public static String charListToString(List<Character> characters)
-    {
-        StringBuilder result = new StringBuilder();
-        for (Character ch : characters)
-            result.append(ch);
-        return result.toString();
-    }
-
     @Override
     public int size()
     {
@@ -172,12 +166,16 @@ public class GenericTrie<T extends Comparable<T>> implements Collection<List<T>>
     /* option #1 adding a null into a list and inserting it into a trie
                  is a programming error and programmer can be notified using an 
                  exception
+            option #1.1 retain old state and refresh it before throwing exception
+            option #1.2 its the programmer's problem now
     */
-    /* option #2
+    /* option #2 don't add the element
+            option #2.1 check first then stop
+            option #2.2 one null is detected roll back the add
+    */
+    /* option #3 
         
-     
     */
-    
     @Override
     public boolean add(List<T> input)
     {
@@ -279,20 +277,20 @@ public class GenericTrie<T extends Comparable<T>> implements Collection<List<T>>
             symbol = sym;
         }
     }
-
     
     public GenericTrie()
     {
         root = new Vertex();
     }
     
-    Vertex root;
+    // should not need reflection to access this variable
+    public Vertex root;
     
     private Vertex transition(Vertex v, T element)
     {
         // if found traverse to corresponding vertex
         for (Edge e : v.edges)
-            if (e.symbol.compareTo(element) == 0)
+            if (e.symbol.equals(element))
                 return e.consequent;
         
         // if not found create vertex and treverse to it
@@ -306,6 +304,7 @@ public class GenericTrie<T extends Comparable<T>> implements Collection<List<T>>
         preorderPrintAux(root, new ArrayList<>(), x -> System.out.printf("%s\n", x));
     }
 
+    // preorder traversal of the trie
     private void preorderPrintAux(Vertex node, String str)
     {
         if (root != null)
@@ -315,6 +314,10 @@ public class GenericTrie<T extends Comparable<T>> implements Collection<List<T>>
                 preorderPrintAux(e.consequent, str + e.symbol);
         }
     }
+    
+    // TODO:
+    // is (pre|post)order traversals just breadth first searches of a binary tree?
+    // is inorder traversals just depth first search?
     private void preorderPrintAux(Vertex node, List<T> sequence, Function<List<T>, Object> f)
     {
         if (root != null)
@@ -327,6 +330,26 @@ public class GenericTrie<T extends Comparable<T>> implements Collection<List<T>>
                 newSequence.add(e.symbol);
                 preorderPrintAux(e.consequent, newSequence, f);
             }
+        }
+    }
+    
+    // TODO: pasted from OldGenericTrie should maybe remove
+    public void preorderToStream(PrintStream out)
+    {
+        out.printf("[");
+        preorderToStreamAux(root, true, "", out);
+        out.printf("]");
+    }
+
+    // TODO: pasted from OldGenericTrie should maybe remove
+    private void preorderToStreamAux(Vertex node, boolean first, String str, PrintStream out)
+    {
+        if (root != null)
+        {
+            out.printf("%s%s", first?"":", ", str);
+            for (Edge e : node.edges)
+                preorderToStreamAux(e.consequent, false, str + e.symbol.toString(), out);
+            
         }
     }
 }
